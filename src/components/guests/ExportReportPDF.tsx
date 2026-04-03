@@ -19,14 +19,22 @@ export default function ExportReportPDF({ events }: ExportReportPDFProps) {
 
     try {
       const event = events.find(e => e.id === selectedEventId)
-      if (!event) return
+      if (!event) {
+        alert('Événement non trouvé.')
+        return
+      }
 
       // Fetch guests with guestbook entries
-      const { data: guests } = await supabase
+      const { data: guests, error: guestsError } = await supabase
         .from('guests')
         .select('*, invitations(id)')
         .eq('event_id', selectedEventId)
         .order('table_seat', { ascending: true })
+
+      if (guestsError) {
+        alert('Erreur lors du chargement des invités.')
+        return
+      }
 
       if (!guests || guests.length === 0) {
         alert('Aucun invité trouvé pour cet événement.')
@@ -34,10 +42,17 @@ export default function ExportReportPDF({ events }: ExportReportPDFProps) {
       }
 
       // Fetch guestbook entries for all invitations
-      const invitationIds = guests
-        .flatMap((g: { invitations?: { id: string }[] }) => g.invitations?.map(inv => inv.id) ?? [])
+      const invitationIds: string[] = []
+      for (const g of guests) {
+        const invs = (g as Record<string, unknown>).invitations as { id: string }[] | undefined
+        if (invs) {
+          for (const inv of invs) {
+            if (inv.id) invitationIds.push(inv.id)
+          }
+        }
+      }
 
-      let guestbookMap = new Map<string, { message?: string; drink_preferences: string[]; plus_ones: number }>()
+      const guestbookMap = new Map<string, { message?: string; drink_preferences: string[]; plus_ones: number }>()
       if (invitationIds.length > 0) {
         const { data: entries } = await supabase
           .from('guestbook_entries')
@@ -51,8 +66,8 @@ export default function ExportReportPDF({ events }: ExportReportPDFProps) {
 
       // Map guests with their guestbook entries
       const guestsWithEntries = guests.map((guest) => {
-        const invitations = (guest as { invitations?: { id: string }[] }).invitations
-        const invId = invitations?.[0]?.id
+        const invs = (guest as Record<string, unknown>).invitations as { id: string }[] | undefined
+        const invId = invs?.[0]?.id
         return {
           id: guest.id as string,
           event_id: guest.event_id as string,

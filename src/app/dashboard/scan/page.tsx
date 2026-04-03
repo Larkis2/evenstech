@@ -100,7 +100,14 @@ export default function ScanPage() {
       return
     }
 
-    const guest = (invitation as { guest: { first_name: string; last_name: string; table_seat: string; event_id: string } }).guest
+    const guest = (invitation as Record<string, unknown>).guest as {
+      first_name: string; last_name: string; table_seat: string; event_id: string
+    } | undefined
+
+    if (!guest) {
+      setScanInfo({ result: 'invalid', code })
+      return
+    }
 
     // Check if it's for the selected event
     if (guest.event_id !== selectedEvent) {
