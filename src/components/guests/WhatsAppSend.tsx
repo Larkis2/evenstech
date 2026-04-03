@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { buildWhatsAppMessage, getWhatsAppUrl } from '@/lib/whatsapp'
+import { buildWhatsAppMessage, getWhatsAppUrl, normalizePhone } from '@/lib/whatsapp'
 
 interface WhatsAppSendProps {
   events: { id: string; name: string }[]
@@ -190,7 +190,10 @@ export default function WhatsAppSend({ events, onClose }: WhatsAppSendProps) {
               <p className="text-lg font-semibold text-[var(--text-title)]">
                 {currentGuest.first_name} {currentGuest.last_name}
               </p>
-              <p className="text-sm text-gray-400 font-mono mt-1">{currentGuest.phone}</p>
+              <p className="text-sm text-gray-400 font-mono mt-1">
+                {currentGuest.phone}
+                <span className="text-xs text-gray-300 ml-2">→ +{normalizePhone(currentGuest.phone)}</span>
+              </p>
             </div>
 
             {/* Message preview */}

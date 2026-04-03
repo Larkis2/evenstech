@@ -11,23 +11,29 @@ export function buildWhatsAppMessage(
 
 /**
  * Normalise un numéro de téléphone pour WhatsApp.
- * - Supprime tous les caractères non numériques
- * - Si le numéro commence par 0, remplace par l'indicatif pays (défaut: 243 = RDC)
- * - Exemples :
- *   +243 81 234 5678 → 243812345678
- *   0812345678       → 243812345678
- *   243812345678     → 243812345678
+ * Gère tous les formats courants en RDC :
+ *   +243 81 234 5678  → 243812345678
+ *   +243-81-234-5678  → 243812345678
+ *   00243812345678    → 243812345678
+ *   0812345678        → 243812345678
+ *   243812345678      → 243812345678
+ *   812345678         → 243812345678
  */
-function normalizePhone(phone: string, defaultCountryCode = '243'): string {
-  let clean = phone.replace(/\D/g, '')
+export function normalizePhone(phone: string, defaultCountryCode = '243'): string {
+  // Supprimer tout sauf les chiffres
+  let clean = phone.replace(/[^0-9]/g, '')
 
-  // Si commence par 00, enlever les deux zéros (format international alternatif)
-  if (clean.startsWith('00')) {
+  // 00243... → 243...
+  if (clean.startsWith('00' + defaultCountryCode)) {
     clean = clean.substring(2)
   }
-  // Si commence par 0, remplacer par l'indicatif pays
+  // 0... → 243... (numéro local)
   else if (clean.startsWith('0')) {
     clean = defaultCountryCode + clean.substring(1)
+  }
+  // Si le numéro est court (9 chiffres, ex: 812345678), ajouter l'indicatif
+  else if (!clean.startsWith(defaultCountryCode) && clean.length <= 10) {
+    clean = defaultCountryCode + clean
   }
 
   return clean
@@ -35,7 +41,9 @@ function normalizePhone(phone: string, defaultCountryCode = '243'): string {
 
 export function getWhatsAppUrl(phone: string, message: string): string {
   const normalized = normalizePhone(phone)
-  return `https://api.whatsapp.com/send?phone=${normalized}&text=${encodeURIComponent(message)}`
+  // Utiliser le format wa.me avec le numéro directement dans le path
+  // C'est le format officiel recommandé par WhatsApp
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`
 }
 
 export function sendToAll(
