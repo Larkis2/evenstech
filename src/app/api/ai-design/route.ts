@@ -1,15 +1,16 @@
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 function buildInvitationPrompt(description: string, eventType: string, styleSuffix: string): string {
   return `Professional ${eventType || 'event'} invitation card design. ${description}. High quality graphic design, beautiful typography, elegant layout with space for couple names and event details. Professional invitation poster style. No readable text on the image - just the beautiful background design with ornamental elements. Print-ready quality, portrait orientation. ${styleSuffix}`.trim()
 }
 
 export async function POST(request: Request) {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return Response.json({ error: 'OpenAI API key not configured' }, { status: 500 })
+    }
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const { description, eventType, isRefinement, currentDesign, refineFeedback } = await request.json()
 
     // Refinement: single image with adjusted prompt
