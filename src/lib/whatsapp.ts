@@ -9,9 +9,33 @@ export function buildWhatsAppMessage(
   return `✨ Bonjour ${guestName} !\n\nVous êtes cordialement invité(e) à : *${eventName}*\n\nVoici votre invitation personnalisée :\n👉 ${url}\n\n_Invitation non transférable_`
 }
 
+/**
+ * Normalise un numéro de téléphone pour WhatsApp.
+ * - Supprime tous les caractères non numériques
+ * - Si le numéro commence par 0, remplace par l'indicatif pays (défaut: 243 = RDC)
+ * - Exemples :
+ *   +243 81 234 5678 → 243812345678
+ *   0812345678       → 243812345678
+ *   243812345678     → 243812345678
+ */
+function normalizePhone(phone: string, defaultCountryCode = '243'): string {
+  let clean = phone.replace(/\D/g, '')
+
+  // Si commence par 00, enlever les deux zéros (format international alternatif)
+  if (clean.startsWith('00')) {
+    clean = clean.substring(2)
+  }
+  // Si commence par 0, remplacer par l'indicatif pays
+  else if (clean.startsWith('0')) {
+    clean = defaultCountryCode + clean.substring(1)
+  }
+
+  return clean
+}
+
 export function getWhatsAppUrl(phone: string, message: string): string {
-  const clean = phone.replace(/\D/g, '')
-  return `https://wa.me/${clean}?text=${encodeURIComponent(message)}`
+  const normalized = normalizePhone(phone)
+  return `https://api.whatsapp.com/send?phone=${normalized}&text=${encodeURIComponent(message)}`
 }
 
 export function sendToAll(
